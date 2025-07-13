@@ -22,7 +22,7 @@
 #define PAYLOAD_LENGTH 13
 #define BAG_LENGTH (HEAD_LENGTH + PAYLOAD_LENGTH)
 
-uint8_t HEADER[2] = {0x44, 0x22};
+uint8_t HEADER[2] = { 0x44, 0x22 };
 
 /**
  * @brief 接受包，接受motor反馈信息
@@ -88,28 +88,23 @@ serial::Serial serialPort;
  * @param timeOut  传输延时，默认为2
  * @return 成功返回1,否则返回0
  */
-int SerialPort_INIT(serial::Serial *sp, char* portName = "/dev/ttyUSB1", int baudrate = 115200, int timeOut = 2)
-{
+int SerialPort_INIT(serial::Serial* sp, char* portName = "/dev/ttyUSB1", int baudrate = 115200, int timeOut = 2) {
     serial::Timeout to = serial::Timeout::simpleTimeout(timeOut);
     sp->setPort(portName);
     sp->setBaudrate(baudrate);
     sp->setTimeout(to);
-    try
-    {
+    try {
         sp->open();
     }
-    catch(serial::IOException& e)
-    {
+    catch (serial::IOException& e) {
         ROS_ERROR_STREAM("Unable to open port.");
         return 0;
     }
 
-    if(sp->isOpen())
-    {
+    if (sp->isOpen()) {
         ROS_INFO_STREAM("Port is opened.");
     }
-    else
-    {
+    else {
         return 0;
     }
     return 1;
@@ -120,8 +115,7 @@ int SerialPort_INIT(serial::Serial *sp, char* portName = "/dev/ttyUSB1", int bau
  * @brief 收到控制信号后，将其传给下位机
  * @param ctrl_msg
  */
-void ctrlDataCallback(const motor_serial::motor_ctrl::ConstPtr& ctrl_msg)
-{
+void ctrlDataCallback(const motor_serial::motor_ctrl::ConstPtr& ctrl_msg) {
     SEND_Bag_u tempBag;
     tempBag.header[0] = HEADER[0];
     tempBag.header[1] = HEADER[1];
@@ -137,8 +131,7 @@ void ctrlDataCallback(const motor_serial::motor_ctrl::ConstPtr& ctrl_msg)
 
 
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     ros::init(argc, argv, "motor_serial");
     ros::NodeHandle nh("~");
     ros::Rate loop_rate(100);
@@ -147,29 +140,24 @@ int main(int argc, char** argv)
     motorData_pub = nh.advertise<motor_serial::motor_data>("motor_data", 10);
 
 
-    if(!SerialPort_INIT(&serialPort))
-    {
-        std::cout<<1<<std::endl;
+    if (!SerialPort_INIT(&serialPort)) {
+        std::cout << 1 << std::endl;
         return  -1;
     }
 
-    while(ros::ok())
-    {
+    while (ros::ok()) {
         //获取缓冲区内的字节数，直至其长度大于等于两个包的长度
         size_t recv_len = 0;
-        for(recv_len = 0; recv_len < 2*BAG_LENGTH; recv_len = serialPort.available());
+        for (recv_len = 0; recv_len < 2 * BAG_LENGTH; recv_len = serialPort.available());
 
         //读取缓存区中数据
-        uint8_t RxBuffer[2*BAG_LENGTH];
-        recv_len = serialPort.read(RxBuffer, 2*BAG_LENGTH);
+        uint8_t RxBuffer[2 * BAG_LENGTH];
+        recv_len = serialPort.read(RxBuffer, 2 * BAG_LENGTH);
 
         //将电机反馈值发送出去
-        for(int i=0; i<2*BAG_LENGTH; ++i)
-
-        {
-            RECV_Bag_u tempBag = *(RECV_Bag_u*) (void *) (&(RxBuffer[i]));
-            if(tempBag.header[0] == HEADER[0] && tempBag.header[1] == HEADER[1])
-            {
+        for (int i = 0; i < 2 * BAG_LENGTH; ++i) {
+            RECV_Bag_u tempBag = *(RECV_Bag_u*)(void*)(&(RxBuffer[i]));
+            if (tempBag.header[0] == HEADER[0] && tempBag.header[1] == HEADER[1]) {
                 motorData.id = tempBag.id;
                 motorData.angle_fdb = tempBag.angle_fdb;
                 motorData.rpm_fdb = tempBag.rpm_fdb;
@@ -179,10 +167,7 @@ int main(int argc, char** argv)
             }
         }
 
-        
-
         ros::spinOnce();
-
         loop_rate.sleep();
     }
 
